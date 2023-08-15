@@ -99,3 +99,38 @@ app.post("/login", (req, res) => {
       res.status(500).json({ message: "Internal server Error!" });
     });
 });
+
+//endpoint to access all the users except the user who's currently logged in
+app.get("/users/:userId", (req, res) => {
+  const loggedInUserId = req.params.userId;
+
+  User.find({ _id: { $ne: loggedInUserId } })
+    .then((users) => {
+      res.status(200).json(users);
+    })
+    .catch((error) => {
+      console.log("Error retrieving users:", error);
+      res.status(500).json({ message: "Error retrieving users" });
+    });
+});
+
+//endpoint to send a request to a user
+app.post("/friend-request", async (req, res) => {
+  const { currentUserId, selectedUserId } = req.body;
+
+  try {
+    //update the receipient's friends request array
+    await User.findByIdAndUpdate(selectedUserId, {
+      $push: { friendRequests: currentUserId },
+    });
+
+    //update the sender's sendFirendRequests array
+    await User.findByIdAndUpdate(currentUserId, {
+      $push: { sentFriendRequests: selectedUserId },
+    });
+
+    res.sendStatus(200);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
