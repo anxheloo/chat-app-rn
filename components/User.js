@@ -6,6 +6,11 @@ const User = ({ item }) => {
   const { userId, setUserId } = useContext(UserType);
   const [requestSent, setRequestSent] = useState(false);
 
+  /*
+  8. Here we define the sendFriendRequest api using 'userId' from our context 
+       and item._id prop that we pass from HomeScreen. Go to FriendScreen & continue... 
+  */
+
   const sendFriendRequest = async (currentUserId, selectedUserId) => {
     try {
       const response = await fetch("http://192.168.1.236:3002/friend-request", {

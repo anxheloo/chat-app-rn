@@ -14,6 +14,7 @@ const HomeScreen = () => {
   const { userId, setUserId } = useContext(UserType);
   const [users, setUsers] = useState([]);
 
+  //5. We use useLayoutEffect to set options before rendering the screen
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "",
@@ -23,19 +24,35 @@ const HomeScreen = () => {
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Ionicons name="chatbox-ellipses-outline" size={24} color="black" />
-          <MaterialIcons name="people-outline" size={24} color="black" />
+          <MaterialIcons
+            onPress={() => {
+              navigation.navigate("Friends");
+            }}
+            name="people-outline"
+            size={24}
+            color="black"
+          />
         </View>
       ),
     });
   }, []);
 
+  //6. The moment screen renders we check for the token in localStorage and get it.
   useEffect(() => {
     const fetchUsers = async () => {
       const token = await AsyncStorage.getItem("authToken");
 
+      //6.1 - We decode the token and save the userId in const userId variable
       const decodedToken = jwtDecode(token);
       const userId = decodedToken.userId;
+
+      //6.2 - Than we save the userId in our Context for further use
       setUserId(userId);
+
+      /*
+      6.3 - Using our userId we make a request to our backend to get all the users 
+              except ourself.
+      */
 
       axios
         .get(`http://192.168.1.236:3002/users/${userId}`)
@@ -52,6 +69,7 @@ const HomeScreen = () => {
 
   console.log("users", users);
 
+  //7.We display the users in our HomeScreen. Go to 'User' component to continue...
   return (
     <View>
       <View style={{ padding: 10 }}>

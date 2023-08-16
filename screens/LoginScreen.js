@@ -19,36 +19,46 @@ const LoginScreen = () => {
   // we can also use this way instead of using navigation as a prop
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const token = await AsyncStorage.getItem("authToken");
-        if (token) {
-          navigation.replace("Home");
-        } else {
-          //token not found, show the login screen
-        }
-      } catch (error) {
-        console.log("error", error);
-      }
-    };
+  /*
+  4. The moment the user opens the app the login screen opens, 
+     it immidiately checks if token exist on localStorage, 
+       if yes it navigates the user directly to Home Screen, 
+       No need to login again
+*/
 
-    checkLoginStatus();
-  }, []);
+  // useEffect(() => {
+  //   const checkLoginStatus = async () => {
+  //     try {
+  //       const token = await AsyncStorage.getItem("authToken");
+  //       if (token) {
+  //         navigation.replace("Home");
+  //       } else {
+  //         //token not found, show the login screen
+  //       }
+  //     } catch (error) {
+  //       console.log("error", error);
+  //     }
+  //   };
+
+  //   checkLoginStatus();
+  // }, []);
 
   console.log(email);
 
+  //3. We use this method to login the user with email and password
   const handleLogin = () => {
     const user = {
       email: email,
       password: password,
     };
 
-    //send a post request to the backend API to register user
+    //3.1 - Send a post request to the backend API to register user
     axios
       .post("http://192.168.1.236:3002/login", user)
       .then((response) => {
-        console.log(response);
+        // console.log(response);
+
+        //3.2 - We get the token from our response & save it into our localStorage
         const token = response.data.token;
         AsyncStorage.setItem("authToken", token);
 

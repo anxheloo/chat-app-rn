@@ -134,3 +134,23 @@ app.post("/friend-request", async (req, res) => {
     res.sendStatus(500);
   }
 });
+
+//endpoint to show all the friend requests of a user
+
+app.get("/friend-request/:userId", async (req, res) => {
+  try {
+    const userId = req.params;
+
+    //fetch the user document based on the User id
+    const user = await User.findById(userId)
+      .populate("friendRequests", "name", "email", "image")
+      .lean();
+
+    const friendRequests = user.friendRequests;
+
+    res.json(friendRequests);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
