@@ -35,6 +35,17 @@ app.listen(port, () => {
 
 const User = require("./models/user");
 const Message = require("./models/message");
+const multer = require("multer");
+
+// Multer Configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, "uploads"));
+  },
+  filename: function (req, file, cb) {
+    cb(null, new Date().toISOString() + "-" + file.originalname);
+  },
+});
 
 //endpoint for registration of the user
 app.post("/register", (req, res) => {
@@ -139,16 +150,133 @@ app.post("/friend-request", async (req, res) => {
 
 app.get("/friend-request/:userId", async (req, res) => {
   try {
-    const userId = req.params;
+    const userId = req.params.userId;
 
     //fetch the user document based on the User id
     const user = await User.findById(userId)
-      .populate("friendRequests", "name", "email", "image")
+      .populate("friendRequests", "name email image")
       .lean();
 
     const friendRequests = user.friendRequests;
 
     res.json(friendRequests);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+/*endpoint to accept a friend-request: Anxhelo is sending a friend request to Berti
+  If berti accepts, we add each other on friends array and remove sent friend request 
+  from anxhelo's array
+*/
+app.post("/friend-request/accept", async (req, res) => {
+  try {
+    const { senderId, receipientId } = req.body;
+
+    // retreive the documents o sender and the recipient
+    const sender = await User.findById(senderId);
+    const receipient = await User.findById(receipientId);
+
+    //they become friends
+    // if(sender.friends.receipientId !== receipientId){
+    //      sender.friends.push(receipientId);
+    // }
+
+    //     if (receipient.friends.senderId !== senderId) {
+    //       receipient.friends.push(senderId);
+    //     }
+
+    sender.friends.push(receipientId);
+    receipient.friends.push(senderId);
+
+    //remove the Id from sentFriendRequsts Id
+    receipient.friendRequests = receipient.friendRequests.filter(
+      (request) => request.toString() !== senderId.toString()
+    );
+
+    sender.sentFriendRequests = sender.sentFriendRequests.filter(
+      (request) => request.toString() !== receipientId.toString()
+    );
+
+    await sender.save();
+    await receipient.save();
+
+    res.status(200).json({ message: "Friend Request accepted successfully!" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//endpoint to access all the friends of the logged in user!
+app.get("/accepted-friends/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).populate(
+      "friends",
+      "name email image"
+    );
+
+    const acceptedFriends = user.friends;
+    res.status(200).json(acceptedFriends);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Serve Error" });
+  }
+});
+
+const upload = multer({ storage: storage });
+
+//endpoint to post Messages and store it in the backend
+app.post("/messages", upload.single("imageFile"), async (req, res) => {
+  try {
+    const { senderId, recepientId, messageType, messageText } = req.body;
+
+    const newMessage = new Message({
+      senderId,
+      recepientId,
+      messageType,
+      messageText,
+      timestamp: new Date(),
+      imageUrl: messageType === "image",
+    });
+
+    res.status(200).json({ message: "Message sent Successfully" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+//endpoint to get the user details to design the chat Room header
+app.get("/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    //fetch the user data from the userId
+    const recepientId = await User.findById(userId);
+
+    res.json(recepientId);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+//endpoint to fetch the messages between two users in the chat room
+app.get("/messages/:senderId/:recepientId", async (req, res) => {
+  try {
+    const { senderId, recepientId } = req.params;
+
+    const messages = await Message.findOne({
+      $or: [
+        { senderId: senderId, recepientId: recepientId },
+        { senderId: recepientId, recepientId: senderId },
+      ],
+    }).populate("senderId", "_id name");
+
+    res.json(messages);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal Server Error" });

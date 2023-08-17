@@ -23,7 +23,12 @@ const HomeScreen = () => {
       ),
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Ionicons name="chatbox-ellipses-outline" size={24} color="black" />
+          <Ionicons
+            onPress={() => navigation.navigate("ChatScreen")}
+            name="chatbox-ellipses-outline"
+            size={24}
+            color="black"
+          />
           <MaterialIcons
             onPress={() => {
               navigation.navigate("Friends");
@@ -67,7 +72,7 @@ const HomeScreen = () => {
     fetchUsers();
   }, []);
 
-  console.log("users", users);
+  // console.log("users", users);
 
   //7.We display the users in our HomeScreen. Go to 'User' component to continue...
   return (

@@ -43,7 +43,7 @@ const LoginScreen = () => {
   //   checkLoginStatus();
   // }, []);
 
-  console.log(email);
+  // console.log(email);
 
   //3. We use this method to login the user with email and password
   const handleLogin = () => {
