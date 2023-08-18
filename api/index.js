@@ -35,17 +35,23 @@ app.listen(port, () => {
 
 const User = require("./models/user");
 const Message = require("./models/message");
-const multer = require("multer");
 
+const multer = require("multer");
 // Multer Configuration
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "uploads"));
+    // cb(null, path.join(__dirname, "uploads"));
+    cb(null, "files/"); //specify the desired destination folder
   },
   filename: function (req, file, cb) {
-    cb(null, new Date().toISOString() + "-" + file.originalname);
+    //Generate a unique filename for the uploaded file
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+
+    cb(null, uniqueSuffix + "-" + file.originalname);
   },
 });
+
+const upload = multer({ storage: storage });
 
 //endpoint for registration of the user
 app.post("/register", (req, res) => {
@@ -226,21 +232,30 @@ app.get("/accepted-friends/:userId", async (req, res) => {
   }
 });
 
-const upload = multer({ storage: storage });
-
 //endpoint to post Messages and store it in the backend
 app.post("/messages", upload.single("imageFile"), async (req, res) => {
   try {
-    const { senderId, recepientId, messageType, messageText } = req.body;
+    const _parts = req.body;
+
+    const senderId = _parts[0][1];
+    const recepientId = _parts[1][1];
+    const messageType = _parts[2][1];
+    const messageText = _parts[3][1];
+
+    console.log(messageText);
 
     const newMessage = new Message({
       senderId,
       recepientId,
       messageType,
-      messageText,
+      message: messageText,
       timestamp: new Date(),
       imageUrl: messageType === "image",
     });
+
+    console.log(newMessage);
+
+    await newMessage.save();
 
     res.status(200).json({ message: "Message sent Successfully" });
   } catch (error) {
@@ -269,13 +284,14 @@ app.get("/messages/:senderId/:recepientId", async (req, res) => {
   try {
     const { senderId, recepientId } = req.params;
 
-    const messages = await Message.findOne({
+    const messages = await Message.find({
       $or: [
         { senderId: senderId, recepientId: recepientId },
         { senderId: recepientId, recepientId: senderId },
       ],
     }).populate("senderId", "_id name");
 
+    console.log("THese are messages", messages);
     res.json(messages);
   } catch (error) {
     console.log(error);
