@@ -59,7 +59,7 @@ const HomeScreen = () => {
               except ourself.
       */
 
-      axios
+      await axios
         .get(`http://192.168.1.236:3002/users/${userId}`)
         .then((response) => {
           setUsers(response.data);

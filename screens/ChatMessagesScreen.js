@@ -15,6 +15,7 @@ import { UserType } from "../UserContext";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 
 const ChatMessageScreen = ({ route }) => {
   const { recepientId } = route.params;
@@ -24,6 +25,7 @@ const ChatMessageScreen = ({ route }) => {
   const [showEmojiSelector, setShowEmojiSelector] = useState(false);
   const [message, setMessage] = useState("");
   const [recepientData, setRecepientData] = useState();
+  const [image, setImage] = useState(null);
   const navigation = useNavigation();
 
   const handleEmojiPress = () => {
@@ -37,12 +39,13 @@ const ChatMessageScreen = ({ route }) => {
       );
 
       const data = response.data;
-      console.log("This is data: ", data);
-      console.log("This is message: ", data[0].message);
+      // console.log("This is data: ", data);
+      // console.log("This is message: ", data[0].message);
+      // console.log("This is messageType:: ", data[0].messageType);
 
       // setMessages((oldMessages) => [...oldMessages, data.message]);
       setMessages(data);
-      console.log("Messages", messages);
+      // console.log("Messages", messages);
     } catch (error) {
       console.log("Error fetching messages", error);
     }
@@ -94,13 +97,14 @@ const ChatMessageScreen = ({ route }) => {
       const endpoint = "http://192.168.1.236:3002/messages";
       const { _parts } = formData;
 
-      // console.log("This is formData._parts.userId", _parts);
+      // console.log("This is formData._parts", _parts);
+      // console.log("THis is uri: ", _parts[0][3]);
 
       const response = await axios.post(endpoint, _parts);
 
       if (response.status === 200) {
         setMessage(""), setSelectedImage("");
-        console.log(response.data.message);
+        // console.log(response.data.message);
         fetchMessages();
       }
     } catch (error) {
@@ -149,6 +153,21 @@ const ChatMessageScreen = ({ route }) => {
 
   // console.log("Messages", messages);
 
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      // handleSend("image",result)
+      handleSend("image", result.uri);
+    }
+  };
+
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: "#F0F0F0" }}>
       <ScrollView style={{ marginTop: 10 }}>
@@ -192,6 +211,65 @@ const ChatMessageScreen = ({ route }) => {
                 >
                   {formatTime(item?.timeStamp)}
                 </Text>
+              </Pressable>
+            );
+          }
+
+          if (item.messageType === "image") {
+            const baseUrl = "/Users/HP280G1/Desktop/chat-app/api/files/";
+            const imageUrl = item.imageUrl;
+            console.log("imageUrl : ", imageUrl);
+            const filename = imageUrl.split("/").pop();
+            console.log("filename : ", filename);
+            // const source = { uri: baseUrl + filename };
+            const source = { uri: imageUrl };
+            console.log("source : ", source);
+
+            return (
+              <Pressable
+                key={index}
+                style={[
+                  // { marginTop: 10 },
+                  item?.senderId?._id === userId
+                    ? {
+                        alignSelf: "flex-end",
+                        backgroundColor: "#DCF8C6",
+                        padding: 8,
+                        maxWidth: "60%",
+                        borderRadius: 7,
+                        marginHorizontal: 10,
+                        marginVertical: 5,
+                      }
+                    : {
+                        alignSelf: "flex-start",
+                        backgroundColor: "white",
+                        padding: 8,
+                        margin: 10,
+                        borderRadius: 7,
+                        maxWidth: "60%",
+                      },
+                ]}
+              >
+                <View>
+                  <Image
+                    source={source}
+                    style={{ width: 200, height: 200, borderRadius: 7 }}
+                  ></Image>
+
+                  <Text
+                    style={{
+                      position: "absolute",
+                      textAlign: "right",
+                      fontSize: 11,
+                      color: "white",
+                      marginTop: 4,
+                      right: 10,
+                      bottom: 7,
+                    }}
+                  >
+                    {formatTime(item?.timeStamp)}
+                  </Text>
+                </View>
               </Pressable>
             );
           }
@@ -239,7 +317,7 @@ const ChatMessageScreen = ({ route }) => {
             marginHorizontal: 8,
           }}
         >
-          <Entypo name="camera" size={24} color="gray" />
+          <Entypo name="camera" size={24} color="gray" onPress={pickImage} />
 
           <Feather name="mic" size={24} color="gray" />
         </View>

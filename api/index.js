@@ -36,23 +36,6 @@ app.listen(port, () => {
 const User = require("./models/user");
 const Message = require("./models/message");
 
-const multer = require("multer");
-// Multer Configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // cb(null, path.join(__dirname, "uploads"));
-    cb(null, "files/"); //specify the desired destination folder
-  },
-  filename: function (req, file, cb) {
-    //Generate a unique filename for the uploaded file
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-
-    cb(null, uniqueSuffix + "-" + file.originalname);
-  },
-});
-
-const upload = multer({ storage: storage });
-
 //endpoint for registration of the user
 app.post("/register", (req, res) => {
   const { name, email, password, image } = req.body;
@@ -232,25 +215,54 @@ app.get("/accepted-friends/:userId", async (req, res) => {
   }
 });
 
+// app.use("/files", express.static("files"));
+// const path = require("path");
+
+const multer = require("multer");
+// Multer Configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // cb(null, path.join(__dirname, "files"));
+    cb(null, "files"); //specify the desired destination folder
+  },
+  filename: function (req, file, cb) {
+    //Generate a unique filename for the uploaded file
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
+
 //endpoint to post Messages and store it in the backend
 app.post("/messages", upload.single("imageFile"), async (req, res) => {
   try {
     const _parts = req.body;
 
+    console.log("THis is _parts: ", _parts);
+    const { uri } = _parts[3][1];
+
+    console.log("This is uri: ", uri);
+
     const senderId = _parts[0][1];
     const recepientId = _parts[1][1];
     const messageType = _parts[2][1];
-    const messageText = _parts[3][1];
+    let messageText = "";
 
-    console.log(messageText);
+    if (messageType === "text") {
+      messageText = _parts[3][1];
+    } else {
+      messageText = uri;
+    }
 
     const newMessage = new Message({
       senderId,
       recepientId,
       messageType,
-      message: messageText,
+      message: messageType === "text" ? messageText : null,
       timestamp: new Date(),
-      imageUrl: messageType === "image",
+      imageUrl: messageType === "image" ? uri : null,
+      // imageUrl: messageType === "image" ? req.file.path : null,
     });
 
     console.log(newMessage);

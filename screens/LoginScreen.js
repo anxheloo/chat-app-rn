@@ -62,6 +62,8 @@ const LoginScreen = () => {
         const token = response.data.token;
         AsyncStorage.setItem("authToken", token);
 
+        console.log("This is token when loggin: ", token);
+
         Alert.alert(
           "Login Successful",
           " You have been registered successfully"
