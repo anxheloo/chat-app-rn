@@ -1,5 +1,6 @@
 const express = require("express");
-const bodyParser = require("body-parser");
+// const bodyParser = require("body-parser");
+
 const mongoose = require("mongoose");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
@@ -9,8 +10,10 @@ const port = 3002;
 const cors = require("cors");
 app.use(cors());
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+var bodyParser = require("body-parser");
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+
 app.use(passport.initialize());
 const jwt = require("jsonwebtoken");
 
@@ -215,11 +218,8 @@ app.get("/accepted-friends/:userId", async (req, res) => {
   }
 });
 
-// app.use("/files", express.static("files"));
-// const path = require("path");
-
-const multer = require("multer");
 // Multer Configuration
+const multer = require("multer");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // cb(null, path.join(__dirname, "files"));
@@ -231,18 +231,28 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + "-" + file.originalname);
   },
 });
-
 const upload = multer({ storage: storage });
 
 //endpoint to post Messages and store it in the backend
 app.post("/messages", upload.single("imageFile"), async (req, res) => {
+  // console.log("1231232131231232132131232132132132");
+
   try {
+    // const formData = req.body;
+    // console.log("THis is formData", formData);
+
     const _parts = req.body;
+    // console.log("THis is _parts: ", _parts);
+    const { uri, base64 } = _parts[3][1];
 
-    console.log("THis is _parts: ", _parts);
-    const { uri } = _parts[3][1];
+    // const { data } = req.body;
 
-    console.log("This is uri: ", uri);
+    // console.log("THis is uri", uri);
+    // console.log("THis is base64", base64);
+
+    // console.log("THis is data.userId", data.userId);
+
+    // console.log("This is uri: ", uri);
 
     const senderId = _parts[0][1];
     const recepientId = _parts[1][1];
@@ -252,7 +262,12 @@ app.post("/messages", upload.single("imageFile"), async (req, res) => {
     if (messageType === "text") {
       messageText = _parts[3][1];
     } else {
-      messageText = uri;
+      // messageText = uri;
+      messageText = base64;
+      // const destinationFilePath = `files/${uri}`;
+
+      // const fs = require("fs");
+      // fs.copyFileSync(uri, destinationFilePath);
     }
 
     const newMessage = new Message({
@@ -261,11 +276,12 @@ app.post("/messages", upload.single("imageFile"), async (req, res) => {
       messageType,
       message: messageType === "text" ? messageText : null,
       timestamp: new Date(),
-      imageUrl: messageType === "image" ? uri : null,
+      imageUrl: messageType === "image" ? base64 : null,
+      // imageUrl: messageType === "image" ? base64 : null,
       // imageUrl: messageType === "image" ? req.file.path : null,
     });
 
-    console.log(newMessage);
+    // console.log(newMessage);
 
     await newMessage.save();
 
@@ -303,10 +319,27 @@ app.get("/messages/:senderId/:recepientId", async (req, res) => {
       ],
     }).populate("senderId", "_id name");
 
-    console.log("THese are messages", messages);
     res.json(messages);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+//endpoint to delete the messages!
+app.post("/deleteMessages", async (req, res) => {
+  try {
+    const messages = req.body;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ message: "Invalid Request Body" });
+    }
+
+    await Message.deleteMany({ _id: { $in: messages } });
+
+    res.status(200).json({ message: "Message deleted Successfully!" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Internal Server" });
   }
 });

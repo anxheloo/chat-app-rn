@@ -1,9 +1,44 @@
 import { useNavigation } from "@react-navigation/native";
-import React from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { Text, View, Pressable, Image } from "react-native";
+import { UserType } from "../UserContext";
+import axios from "axios";
 
 const UserChat = ({ item }) => {
   const navigation = useNavigation();
+
+  const { userId, setUserId } = useContext(UserType);
+
+  const [messages, setMessages] = useState([]);
+
+  const fetchMessages = async () => {
+    try {
+      const response = await axios.get(
+        `http://192.168.1.236:3002/messages/${userId}/${item._id}`
+      );
+      const data = response.data;
+      setMessages(data);
+    } catch (error) {
+      console.log("Error fetching messages", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, []);
+
+  const getLastMessage = () => {
+    const userMessages = messages.filter(
+      (message) => message.messageType === "text"
+    );
+
+    const lastMessage = userMessages[-1];
+
+    return userMessages[userMessages.length - 1];
+  };
+
+  const lastMessage = getLastMessage();
+  console.log(lastMessage);
 
   return (
     <Pressable

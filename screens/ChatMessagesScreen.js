@@ -15,11 +15,14 @@ import { UserType } from "../UserContext";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { MaterialIcons } from "@expo/vector-icons";
 
 const ChatMessageScreen = ({ route }) => {
   const { recepientId } = route.params;
   const [selectedImage, setSelectedImage] = useState("");
+  const [selectedMessages, setSelectedMessages] = useState([]);
   const [messages, setMessages] = useState([]);
   const { userId, setUserId } = useContext(UserType);
   const [showEmojiSelector, setShowEmojiSelector] = useState(false);
@@ -37,15 +40,8 @@ const ChatMessageScreen = ({ route }) => {
       const response = await axios.get(
         `http://192.168.1.236:3002/messages/${userId}/${recepientId}`
       );
-
       const data = response.data;
-      // console.log("This is data: ", data);
-      // console.log("This is message: ", data[0].message);
-      // console.log("This is messageType:: ", data[0].messageType);
-
-      // setMessages((oldMessages) => [...oldMessages, data.message]);
       setMessages(data);
-      // console.log("Messages", messages);
     } catch (error) {
       console.log("Error fetching messages", error);
     }
@@ -75,7 +71,7 @@ const ChatMessageScreen = ({ route }) => {
 
   // console.log(recepientData);
 
-  const handleSend = async (messageType, imageUri) => {
+  const handleSend = async (messageType, imageUri, base64Data) => {
     try {
       const formData = new FormData();
       formData.append("senderId", userId);
@@ -88,6 +84,7 @@ const ChatMessageScreen = ({ route }) => {
           uri: imageUri,
           name: "image.jpg",
           type: "image/jpeg",
+          base64: base64Data,
         });
       } else {
         formData.append("messageType", "text");
@@ -97,18 +94,30 @@ const ChatMessageScreen = ({ route }) => {
       const endpoint = "http://192.168.1.236:3002/messages";
       const { _parts } = formData;
 
-      // console.log("This is formData._parts", _parts);
-      // console.log("THis is uri: ", _parts[0][3]);
-
       const response = await axios.post(endpoint, _parts);
 
       if (response.status === 200) {
         setMessage(""), setSelectedImage("");
-        // console.log(response.data.message);
         fetchMessages();
       }
     } catch (error) {
       console.log("Error in sending the message", error);
+    }
+  };
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+      base64: true,
+    });
+    console.log("THis is result.base64:", result.base64);
+
+    if (!result.canceled) {
+      handleSend("image", result.uri, result.base64);
     }
   };
 
@@ -124,57 +133,101 @@ const ChatMessageScreen = ({ route }) => {
             color="black"
           />
 
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Image
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 15,
-                resizeMode: "cover",
-              }}
-              source={{ uri: recepientData?.image }}
-            ></Image>
+          {selectedMessages.length > 0 ? (
+            <View>
+              <Text style={{ fontSize: 16, fontWeight: "500" }}>
+                {selectedMessages.length}
+              </Text>
+            </View>
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Image
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  resizeMode: "cover",
+                }}
+                source={{ uri: recepientData?.image }}
+              ></Image>
 
-            <Text style={{ marginLeft: 5, fontSize: 15, fontWeight: "bold" }}>
-              {recepientData?.name}
-            </Text>
-          </View>
+              <Text style={{ marginLeft: 5, fontSize: 15, fontWeight: "bold" }}>
+                {recepientData?.name}
+              </Text>
+            </View>
+          )}
         </View>
       ),
+
+      headerRight: () =>
+        selectedMessages.length > 0 ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Ionicons name="md-arrow-redo" size={24} color="black" />
+            <Ionicons name="md-arrow-undo" size={24} color="black" />
+            <FontAwesome name="star" size={24} color="black" />
+            <MaterialIcons
+              onPress={() => deleteMessages(selectedMessages)}
+              name="delete"
+              size={24}
+              color="black"
+            />
+          </View>
+        ) : null,
     });
-  }, [recepientData]);
+  }, [recepientData, selectedMessages]);
+
+  const deleteMessages = async (messageIds) => {
+    try {
+      const endpoint = "http://192.168.1.236:3002/deleteMessages";
+
+      body = JSON.stringify({ message: messageIds });
+
+      const response = await axios.post(endpoint, messageIds);
+
+      if (response.status === 200) {
+        setSelectedMessages((prevMessages) =>
+          prevMessages.filter((id) => !messageIds.includes(id))
+        );
+
+        fetchMessages();
+      } else {
+        console.log("Error deleting MESAGGES:", response.status);
+      }
+    } catch (error) {
+      console.log("Error deleting messages", error);
+    }
+  };
 
   const formatTime = (time) => {
     const options = { hour: "numeric", minure: "numeric" };
     return new Date(time).toLocaleString("en-US", options);
   };
 
-  // console.log(recepientData);
+  const handleSelectedMessage = (message) => {
+    //check if message is already selected
+    const isSelected = selectedMessages.includes(message._id);
 
-  // console.log("Messages", messages);
-
-  const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      // handleSend("image",result)
-      handleSend("image", result.uri);
+    if (isSelected) {
+      setSelectedMessages((prevMessages) =>
+        prevMessages.filter((id) => id !== message._id)
+      );
+    } else {
+      setSelectedMessages((prevMessages) => [...prevMessages, message._id]);
     }
   };
+
+  console.log("These are selected Messages: ", selectedMessages);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: "#F0F0F0" }}>
       <ScrollView style={{ marginTop: 10 }}>
         {messages.map((item, index) => {
           if (item.messageType === "text") {
+            const isSelected = selectedMessages.includes(item._id);
+
             return (
               <Pressable
+                onLongPress={() => handleSelectedMessage(item)}
                 key={index}
                 style={[
                   // { marginTop: 10 },
@@ -196,9 +249,16 @@ const ChatMessageScreen = ({ route }) => {
                         borderRadius: 7,
                         maxWidth: "60%",
                       },
+
+                  isSelected && { width: "100%", backgroundColor: "#F0FFFF" },
                 ]}
               >
-                <Text style={{ fontSize: 13, textAlign: "left" }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    textAlign: isSelected ? "right" : "left",
+                  }}
+                >
                   {item?.message}
                 </Text>
                 <Text
@@ -216,14 +276,9 @@ const ChatMessageScreen = ({ route }) => {
           }
 
           if (item.messageType === "image") {
-            const baseUrl = "/Users/HP280G1/Desktop/chat-app/api/files/";
             const imageUrl = item.imageUrl;
-            console.log("imageUrl : ", imageUrl);
-            const filename = imageUrl.split("/").pop();
-            console.log("filename : ", filename);
-            // const source = { uri: baseUrl + filename };
-            const source = { uri: imageUrl };
-            console.log("source : ", source);
+            // Decode the base64 image data
+            const decodedImageData = `data:image/jpeg;base64,${imageUrl}`;
 
             return (
               <Pressable
@@ -252,7 +307,7 @@ const ChatMessageScreen = ({ route }) => {
               >
                 <View>
                   <Image
-                    source={source}
+                    source={{ uri: decodedImageData }}
                     style={{ width: 200, height: 200, borderRadius: 7 }}
                   ></Image>
 
