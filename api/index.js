@@ -1,6 +1,10 @@
 const express = require("express");
 // const bodyParser = require("body-parser");
 
+//These 2 are for WebSockets
+// const http = require("http");
+// const socketIo = require("socket.io");
+
 const mongoose = require("mongoose");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
@@ -13,6 +17,10 @@ app.use(cors());
 var bodyParser = require("body-parser");
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+
+//These are for WebSocket
+// const server = http.createServer(app);
+// const io = socketIo(server);
 
 app.use(passport.initialize());
 const jwt = require("jsonwebtoken");
@@ -29,6 +37,24 @@ mongoose
   .catch((error) => {
     console.log("Error connecting to MongoDb", error);
   });
+
+/*
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  // Handle messages
+  socket.on("chatMessage", (data) => {
+    // Broadcast the message to all connected clients (excluding the sender)
+    socket.broadcast.emit("message", data);
+  });
+
+  // Handle disconnection
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+  });
+});
+
+*/
 
 app.listen(port, () => {
   console.log("Server running on port 3002");

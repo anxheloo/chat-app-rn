@@ -24,6 +24,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialIcons } from "@expo/vector-icons";
+import io from "socket.io-client";
 
 const ChatMessageScreen = ({ route }) => {
   const { recepientId } = route.params;
@@ -38,6 +39,28 @@ const ChatMessageScreen = ({ route }) => {
   const navigation = useNavigation();
 
   const scrollViewRef = useRef(null);
+
+  // Connect to the WebSocket server on component mount
+  /*
+  const socket = useRef(
+    io("http://http://192.168.1.236:3002") // Replace with your server's address
+  );
+
+  useEffect(() => {
+    // Event listener for receiving messages
+    socket.current.on("message", (data) => {
+      // Handle the received message (e.g., update the state to display it)
+      setMessages((prevMessages) => [...prevMessages, data]);
+      scrollToBottom();
+    });
+
+    return () => {
+      // Clean up when the component unmounts
+      socket.current.disconnect();
+    };
+  }, []);
+
+  */
 
   useEffect(() => {
     scrollToBottom();
@@ -117,6 +140,15 @@ const ChatMessageScreen = ({ route }) => {
       const { _parts } = formData;
 
       const response = await axios.post(endpoint, _parts);
+
+      // Send the message to the server via WebSocket
+      /*
+      socket.current.emit("chatMessage", {
+        senderId: userId,
+        messageType,
+        messageText: message,
+      });
+      */
 
       if (response.status === 200) {
         setMessage(""), setSelectedImage("");
