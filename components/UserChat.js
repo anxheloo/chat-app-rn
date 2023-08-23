@@ -32,13 +32,18 @@ const UserChat = ({ item }) => {
       (message) => message.messageType === "text"
     );
 
-    const lastMessage = userMessages[-1];
+    const lastMessage = userMessages[userMessages.length - 1];
 
-    return userMessages[userMessages.length - 1];
+    return lastMessage;
   };
 
   const lastMessage = getLastMessage();
   console.log(lastMessage);
+
+  const formatTime = (time) => {
+    const options = { hour: "numeric", minure: "numeric" };
+    return new Date(time).toLocaleString("en-US", options);
+  };
 
   return (
     <Pressable
@@ -64,9 +69,11 @@ const UserChat = ({ item }) => {
 
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: "500" }}>{item?.name}</Text>
-        <Text style={{ color: "gray", marginTop: 3, fontWeight: "500" }}>
-          last message come here
-        </Text>
+        {lastMessage && (
+          <Text style={{ color: "gray", marginTop: 3, fontWeight: "500" }}>
+            {lastMessage?.message}
+          </Text>
+        )}
       </View>
 
       <View>
@@ -77,7 +84,7 @@ const UserChat = ({ item }) => {
             color: "#585858",
           }}
         >
-          3:00 pm
+          {lastMessage && formatTime(lastMessage?.timeStamp)}
         </Text>
       </View>
     </Pressable>

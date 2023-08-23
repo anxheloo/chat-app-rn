@@ -1,4 +1,10 @@
-import React, { useState, useContext, useLayoutEffect, useEffect } from "react";
+import React, {
+  useState,
+  useContext,
+  useLayoutEffect,
+  useEffect,
+  useRef,
+} from "react";
 import {
   Text,
   View,
@@ -30,6 +36,22 @@ const ChatMessageScreen = ({ route }) => {
   const [recepientData, setRecepientData] = useState();
   const [image, setImage] = useState(null);
   const navigation = useNavigation();
+
+  const scrollViewRef = useRef(null);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, []);
+
+  const scrollToBottom = () => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: false });
+    }
+  };
+
+  const handleContentSizeChange = () => {
+    scrollToBottom();
+  };
 
   const handleEmojiPress = () => {
     setShowEmojiSelector(!showEmojiSelector);
@@ -216,11 +238,16 @@ const ChatMessageScreen = ({ route }) => {
     }
   };
 
-  console.log("These are selected Messages: ", selectedMessages);
+  // console.log("These are selected Messages: ", selectedMessages);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: "#F0F0F0" }}>
-      <ScrollView style={{ marginTop: 10 }}>
+      <ScrollView
+        style={{ marginTop: 10 }}
+        ref={scrollViewRef}
+        contentContainerStyle={{ flexGrow: 1 }}
+        onContentSizeChange={handleContentSizeChange}
+      >
         {messages.map((item, index) => {
           if (item.messageType === "text") {
             const isSelected = selectedMessages.includes(item._id);
